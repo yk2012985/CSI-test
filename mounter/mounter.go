@@ -42,7 +42,9 @@ func New(meta *s3.FSMeta, cfg *s3.Config) (Mounter, error) {
 	case s3fsMounterType:
 		return newS3fsMounter(meta, cfg)
 	case goofysMounterType:
-		return new
+		return newGoofysMounter(meta, cfg)
+	case s3backerMounterType:
+		return news3
 	}
 }
 

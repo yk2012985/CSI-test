@@ -143,3 +143,15 @@ func sanitizeVolumeID(volumeID string) string {
 	}
 	return volumeID
 }
+
+// volumeIDBucketPrefix returns the bucket name and prefix based on the volumeID.
+// Prefix is empty if volumeID does not have a slash in the name.
+func volumeIDToBucketPrefix(volumeID string) (string, string) {
+	// if the volumeID has a slash in it, this volume is stored under a certain prefix within the bucket.
+	splitVolumeID := strings.Split(volumeID, "/")
+	if len(splitVolumeID) > 1 {
+		return splitVolumeID[0], splitVolumeID[1]
+	}
+
+	return volumeID, ""
+}
