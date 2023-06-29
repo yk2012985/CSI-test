@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/container-storage-interface/spec/lib/go/csi"
+	"github.com/golang/glog"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -56,6 +57,48 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	attrib := req.GetVolumeContext()
 	mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
 
+	glog.V(4).Infof("target %v\ndevice %v\nreadonly %v\nvolumeID %v\nattributes %v\nmountflags %v\n", targetPath, deviceID, readOnly, volumeID, attrib, mountFlags)
+
+	s3, err := s3.NewClientFromSecret(req.GetSecrets())
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
+	}
+	meta, err := s3.GetFSMeta(bucketName, prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	mounter, err := mounter.New(meta, s3.Config)
+	if err != nil {
+		return nil, err
+	}
+	if err := mounter.Mount(stagingTargetPath, targetPath); err != nil {
+		return nil, err
+	}
+
+	glog.V(4).Infof("S3: volume %s successfully mounted to %s", volumeID, targetPath)
+
+	return &csi.NodePublishVolumeResponse{}, nil
+
+}
+
+func (ns nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpublishVolumeRequest) (*csi.NodeUnpublishVolumeResponse, error) {
+	volumeId := req.GetVolumeId()
+	targetPath := req.GetTargetPath()
+
+	// Check arguments
+	if len(volumeId) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+	}
+	if len(targetPath) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+	}
+
+	if err := mounter.FuseUnmount(targetPath); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	glog.V(4).Infof("s3: volume %s has been unmounted.", volumeId)
+	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
 func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
@@ -91,11 +134,54 @@ func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVol
 	if err != nil {
 		return nil, err
 	}
-	mounter, err := mounter.New(meta, s3.Config)
+	mounter, err := mounter.New(meta, client.Config)
 	if err != nil {
 		return nil, err
 	}
+	if err := mounter.Stage(stagingTargetPath); err != nil {
+		return nil, err
+	}
 
+	return &csi.NodeStageVolumeResponse{}, nil
+
+}
+
+func (ns nodeServer) NodeUnstageVolume(ctx context.Context, req *csi.NodeUnstageVolumeRequest) (*csi.NodeUnstageVolumeResponse, error) {
+	volumeID := req.GetVolumeId()
+	stagingTargetPath := req.GetStagingTargetPath()
+
+	// Check arguments
+	if len(volumeID) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+	}
+	if len(stagingTargetPath) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+	}
+
+	return &csi.NodeUnstageVolumeResponse{}, nil
+}
+
+// NodeGetCapabilities returns the supported capabilities of the node server
+func (ns nodeServer) NodeGetCapabilities(ctx context.Context, req *csi.NodeGetCapabilitiesRequest) (*csi.NodeGetCapabilitiesResponse, error) {
+	// currently there is a single NodeServer capability according to the spec
+	nscap := &csi.NodeServiceCapability{
+		Type: &csi.NodeServiceCapability_Rpc{
+			Rpc: &csi.NodeServiceCapability_RPC{
+				Type: csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,
+			},
+		},
+	}
+
+	return &csi.NodeGetCapabilitiesResponse{
+		Capabilities: []*csi.NodeServiceCapability{
+			nscap,
+		},
+	}, nil
+
+}
+
+func (ns nodeServer) NodeExpandVolume(ctx context.Context, req *csi.NodeExpandVolumeRequest) (*csi.NodeExpandVolumeResponse, error) {
+	return &csi.NodeExpandVolumeResponse{}, status.Error(codes.Unimplemented, "NodeExpandVolume is not implemented")
 }
 
 func checkMount(targetPath string) (bool, error) {

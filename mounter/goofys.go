@@ -4,12 +4,11 @@ import (
 	"CSI-test/pkg/s3"
 	"context"
 	"fmt"
-	"github.com/kahing/goofys/api/common"
 	goofysApi "github.com/kahing/goofys/api"
+	"github.com/kahing/goofys/api/common"
 	"os"
 	"path"
 )
-
 
 const (
 	goofysCmd     = "goofys"
@@ -32,11 +31,11 @@ func newGoofysMounter(meta *s3.FSMeta, cfg *s3.Config) (Mounter, error) {
 		region = defaultRegion
 	}
 	return &goofysMounter{
-		meta: meta,
-		endpoint: cfg.Endpoint,
-		region: region,
-		accessKeyID: cfg.AccessKeyID,
-		secretAccessKey: cfg.SecretAccessKey
+		meta:            meta,
+		endpoint:        cfg.Endpoint,
+		region:          region,
+		accessKeyID:     cfg.AccessKeyID,
+		secretAccessKey: cfg.SecretAccessKey,
 	}, nil
 }
 
@@ -51,9 +50,9 @@ func (goofys *goofysMounter) Unstage(stageTarget string) error {
 func (goofys goofysMounter) Mount(source string, target string) error {
 	goofysCfg := &common.FlagStorage{
 		MountPoint: target,
-		Endpoint: goofys.endpoint,
-		DirMode: 0755,
-		FileMode: 0644,
+		Endpoint:   goofys.endpoint,
+		DirMode:    0755,
+		FileMode:   0644,
 		MountOptions: map[string]string{
 			"allow_other": "",
 		},

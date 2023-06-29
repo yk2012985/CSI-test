@@ -48,7 +48,7 @@ func (s3fs *s3fsMounter) Mount(source string, target string) error {
 		"-o", "allow_other",
 		"-o", "mp_umask=000",
 	}
-	return
+	return fuseMount(target, s3fsCmd, args)
 }
 
 func writes3fsPass(pwFileContent string) error {

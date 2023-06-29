@@ -8,6 +8,7 @@ require (
 	github.com/kahing/goofys v0.24.0
 	github.com/kubernetes-csi/drivers v1.0.2
 	github.com/minio/minio-go/v7 v7.0.57
+	github.com/mitchellh/go-ps v1.0.0
 	google.golang.org/grpc v1.55.0
 	k8s.io/mount-utils v0.27.3
 	k8s.io/utils v0.0.0-20230209194617-a36077c30491
