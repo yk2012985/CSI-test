@@ -102,6 +102,7 @@ func (client *s3Client) SetFSMeta(meta *FSMeta) error {
 
 }
 
+// GetFSMeta get metadata of bucket
 func (client *s3Client) GetFSMeta(bucketName, prefix string) (*FSMeta, error) {
 	// what does this mean?
 	opts := minio.GetObjectOptions{}
