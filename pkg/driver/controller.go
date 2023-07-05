@@ -30,6 +30,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	params := req.GetParameters()
 	capacityBytes := int64(req.GetCapacityRange().GetRequiredBytes())
 	mounterType := params[mounter.TypeKey]
+	glog.V(3).Infof("------------------------------------------")
 	glog.V(3).Infof("mounterType from CreateVolumeRequest is %v", mounterType)
 	volumeID := sanitizeVolumeID(req.GetName())
 	bucketName := volumeID

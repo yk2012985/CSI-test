@@ -3,7 +3,11 @@ FROM golang:1.20-alpine as gobuild
 WORKDIR /build
 ADD . /build
 
-RUN go get -d -v ./...
+# RUN go get -d -v ./...
+RUN go env -w GO111MODULE=on
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+RUN go mod vendor
+RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o ./s3driver ./cmd/s3driver
 
 FROM debian:buster-slim
