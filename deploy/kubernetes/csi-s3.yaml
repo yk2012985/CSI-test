@@ -81,7 +81,7 @@ spec:
             capabilities:
               add: ["SYS_ADMIN"]
             allowPrivilegeEscalation: true
-          image: ctrox/csi-s3:v1.2.0-rc.2
+          image: registry.ictnjpaas.com:8443/csi-test/csi-minio@sha256:cfeb0efd925176bf6ae811adbf6f65d1cb9cd8635875f41a13c0c6c672bbadc8
           imagePullPolicy: "Always"
           args:
             - "--endpoint=$(CSI_ENDPOINT)"
