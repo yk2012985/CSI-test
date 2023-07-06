@@ -80,7 +80,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	client, err := s3.NewClientFromSecret(req.GetSecrets())
-	if usePrefixError != nil {
+	if err != nil {
 		return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
 	}
 
