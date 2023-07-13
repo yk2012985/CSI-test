@@ -30,7 +30,6 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	params := req.GetParameters()
 	capacityBytes := int64(req.GetCapacityRange().GetRequiredBytes())
 	mounterType := params[mounter.TypeKey]
-	glog.V(3).Infof("------------------------------------------")
 	glog.V(3).Infof("mounterType from CreateVolumeRequest is %v", mounterType)
 	volumeID := sanitizeVolumeID(req.GetName())
 	bucketName := volumeID
@@ -80,8 +79,6 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	}
 
 	client, err := s3.NewClientFromSecret(req.GetSecrets())
-	glog.V(4).Info("=================================================================== ")
-	glog.V(4).Infof("The Security token from Secrets of request is %v", req.GetSecrets())
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
 	}
