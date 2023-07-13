@@ -86,7 +86,7 @@ spec:
             - name: socket-dir
               mountPath: /var/lib/kubelet/plugins/ictnj.csi.s3-driver
         - name: csi-s3
-          image: yk201298501/csi-test:dev
+          image: registry.ictnjpaas.com:8443/csi-test/csi-minio@sha256:24dd89351437af512bbbdfa0204dca5c0d71b28bacd3affc513b14cca5463fd2
           args:
             - "--endpoint=$(CSI_ENDPOINT)"
             - "--nodeid=$(NODE_ID)"
