@@ -20,13 +20,5 @@ RUN apt-get update && \
   s3fs curl unzip && \
   rm -rf /var/lib/apt/lists/*
 
-# install rclone
-ARG RCLONE_VERSION=v1.54.1
-RUN cd /tmp \
-  && curl -O https://downloads.rclone.org/${RCLONE_VERSION}/rclone-${RCLONE_VERSION}-linux-amd64.zip \
-  && unzip /tmp/rclone-${RCLONE_VERSION}-linux-amd64.zip \
-  && mv /tmp/rclone-*-linux-amd64/rclone /usr/bin \
-  && rm -r /tmp/rclone*
-
 COPY --from=gobuild /build/s3driver /s3driver
 ENTRYPOINT ["/s3driver"]
