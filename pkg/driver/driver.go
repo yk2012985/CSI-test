@@ -24,7 +24,7 @@ type driver struct {
 
 var (
 	vendorVersion = "v0.1.0"
-	driverName    = "ictnj.csi.s3-driver"
+	driverName    = "ictnj.csi.s3-Parastor-driver"
 )
 
 // New initializes the driver

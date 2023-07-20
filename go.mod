@@ -3,6 +3,7 @@ module CSI-test
 go 1.20
 
 require (
+	github.com/aws/aws-sdk-go v1.44.302
 	github.com/container-storage-interface/spec v1.8.0
 	github.com/golang/glog v1.1.0
 	github.com/kubernetes-csi/drivers v1.0.2
@@ -18,6 +19,7 @@ require (
 	github.com/go-logr/logr v1.2.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect

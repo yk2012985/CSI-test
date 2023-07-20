@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
-	"net/url"
 	"path"
 )
 
@@ -16,9 +19,9 @@ const (
 )
 
 type s3Client struct {
-	Config *Config
-	minio  *minio.Client
-	ctx    context.Context
+	Config      *Config
+	parastorSvc *s3.S3
+	ctx         context.Context
 }
 
 // Config holds values to configure the driver
@@ -43,23 +46,36 @@ func NewClient(cfg *Config) (*s3Client, error) {
 	var client = &s3Client{}
 
 	client.Config = cfg
-	u, err := url.Parse(client.Config.Endpoint)
-	if err != nil {
-		return nil, err
-	}
-	ssl := u.Scheme == "https"
-	endpoint := u.Hostname()
-	if u.Port() != "" {
-		endpoint = u.Hostname() + ":" + u.Port()
-	}
-	minioClient, err := minio.New(endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(client.Config.AccessKeyID, client.Config.SecretAccessKey, client.Config.Region),
-		Secure: ssl,
+	//u, err := url.Parse(client.Config.Endpoint)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//ssl := u.Scheme == "https"
+	//endpoint := u.Hostname()
+	//if u.Port() != "" {
+	//	endpoint = u.Hostname() + ":" + u.Port()
+	//}
+
+	sess, err := session.NewSession(&aws.Config{
+		Credentials:      credentials.NewStaticCredentials(client.Config.AccessKeyID, client.Config.SecretAccessKey, ""),
+		Endpoint:         aws.String(client.Config.Endpoint),
+		Region:           aws.String(client.Config.Region),
+		DisableSSL:       aws.Bool(true),
+		S3ForcePathStyle: aws.Bool(false),
 	})
 	if err != nil {
 		return nil, err
 	}
-	client.minio = minioClient
+	parastorSvc := s3.New(sess)
+
+	//minioClient, err := minio.New(endpoint, &minio.Options{
+	//	Creds:  credentials.NewStaticV4(client.Config.AccessKeyID, client.Config.SecretAccessKey, client.Config.Region),
+	//	Secure: ssl,
+	//})
+	//if err != nil {
+	//	return nil, err
+	//}
+	client.parastorSvc = parastorSvc
 	client.ctx = context.Background()
 	return client, nil
 }
@@ -76,11 +92,43 @@ func NewClientFromSecret(secret map[string]string) (*s3Client, error) {
 }
 
 func (client *s3Client) BucketExists(bucketName string) (bool, error) {
-	return client.minio.BucketExists(client.ctx, bucketName)
+	result, err := client.parastorSvc.ListBuckets(nil)
+	if err != nil {
+		fmt.Printf("%v\n", err)
+		panic("Unable to list buckets")
+	}
+	if len(result.Buckets) == 0 {
+		return false, nil
+	}
+	for _, bucket := range result.Buckets {
+		if *bucket.Name == bucketName {
+			return true, nil
+		}
+	}
+	return false, nil
+
+	//return client.minio.BucketExists(client.ctx, bucketName)
 }
 
 func (client *s3Client) CreateBucket(bucketName string) error {
-	return client.minio.MakeBucket(client.ctx, bucketName, minio.MakeBucketOptions{Region: client.Config.Region})
+	prarms := &s3.CreateBucketInput{
+		Bucket: aws.String(bucketName),
+	}
+
+	_, err := client.parastorSvc.CreateBucket(prarms)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Waiting for bucket %q to be created...\n", bucketName)
+	err = client.parastorSvc.WaitUntilBucketExists(&s3.HeadBucketInput{
+		Bucket: aws.String(bucketName),
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Bucket %q successfully created\n", bucketName)
+	return nil
+	//return client.minio.MakeBucket(client.ctx, bucketName, minio.MakeBucketOptions{Region: client.Config.Region})
 }
 
 // CreatePrefix What does this func do?
