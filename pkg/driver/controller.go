@@ -32,6 +32,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	mounterType := params[mounter.TypeKey]
 	glog.V(3).Infof("mounterType from CreateVolumeRequest is %v", mounterType)
 	volumeID := sanitizeVolumeID(req.GetName())
+	glog.V(3).Infof("volumeID: %s\n", volumeID)
 	bucketName := volumeID
 	prefix := ""
 	usePrefix, usePrefixError := strconv.ParseBool(params[mounter.UsePrefix])
@@ -69,14 +70,14 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	glog.V(4).Infof("Got a request to create volume %s", volumeID)
 
 	// prepare the metadata for the bucket.
-	meta := &s3.FSMeta{
-		BucketName:    bucketName,
-		UsePrefix:     usePrefix,
-		Prefix:        prefix,
-		Mounter:       mounterType,
-		CapacityBytes: capacityBytes,
-		FSPath:        defaultFsPath,
-	}
+	//meta := &s3.FSMeta{
+	//	BucketName:    bucketName,
+	//	UsePrefix:     usePrefix,
+	//	Prefix:        prefix,
+	//	Mounter:       mounterType,
+	//	CapacityBytes: capacityBytes,
+	//	FSPath:        defaultFsPath,
+	//}
 
 	client, err := s3.NewClientFromSecret(req.GetSecrets())
 	if err != nil {
@@ -91,28 +92,30 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	if exists {
 		// what does this mean?
 		// if bucket exists, get metadata of the bucket, ignore errors as it could just mean meta does not exist yet
-		m, err := client.GetFSMeta(bucketName, prefix)
-		if err != nil {
-			// Check if volume capacity requested is bigger than the already existing capacity
-			if capacityBytes > m.CapacityBytes {
-				return nil, status.Error(
-					codes.AlreadyExists, fmt.Sprintf("Volume with the same name: %s but with smaller size already exist", volumeID),
-				)
-			}
-		}
+		//m, err := client.GetFSMeta(bucketName, prefix)
+		//if err != nil {
+		//	// Check if volume capacity requested is bigger than the already existing capacity
+		//	if capacityBytes > m.CapacityBytes {
+		//		return nil, status.Error(
+		//			codes.AlreadyExists, fmt.Sprintf("Volume with the same name: %s but with smaller size already exist", volumeID),
+		//		)
+		//	}
+		//}
+		return nil, fmt.Errorf("the bucket %s exists", volumeID)
 	} else {
 		if err = client.CreateBucket(bucketName); err != nil {
 			return nil, fmt.Errorf("failed to create bucket %s: %v", bucketName, err)
 		}
 	}
 
+	// Why should we createPrefix?
 	if err = client.CreatePrefix(bucketName, path.Join(prefix, defaultFsPath)); err != nil && prefix != "" {
 		return nil, fmt.Errorf("failed to create prefix %s: %v", path.Join(prefix, defaultFsPath))
 	}
 
-	if err := client.SetFSMeta(meta); err != nil {
-		return nil, fmt.Errorf("error setting bucket metadata: %w", err)
-	}
+	//if err := client.SetFSMeta(meta); err != nil {
+	//	return nil, fmt.Errorf("error setting bucket metadata: %w", err)
+	//}
 
 	glog.V(4).Infof("create volume %s", volumeID)
 	return &csi.CreateVolumeResponse{

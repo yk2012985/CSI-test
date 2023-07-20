@@ -2,9 +2,7 @@ package driver
 
 import (
 	"CSI-test/mounter"
-	"CSI-test/pkg/s3"
 	"context"
-	"fmt"
 	"github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/golang/glog"
 	csicommon "github.com/kubernetes-csi/drivers/pkg/csi-common"
@@ -19,66 +17,68 @@ type nodeServer struct {
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
-	volumeID := req.GetVolumeId()
-	targetPath := req.GetTargetPath()
-	stagingTargetPath := req.GetStagingTargetPath()
-	bucketName, prefix := volumeIDToBucketPrefix(volumeID)
+	//volumeID := req.GetVolumeId()
+	//targetPath := req.GetTargetPath()
+	//stagingTargetPath := req.GetStagingTargetPath()
+	//bucketName, prefix := volumeIDToBucketPrefix(volumeID)
+	//
+	////Check arguments
+	//if req.GetVolumeCapability() == nil {
+	//	return nil, status.Error(codes.InvalidArgument, "Volume capability missing in request")
+	//}
+	//if len(volumeID) == 0 {
+	//	return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+	//}
+	//if len(stagingTargetPath) == 0 {
+	//	return nil, status.Error(codes.InvalidArgument, "Staging Target path missing in request")
+	//}
+	//if len(targetPath) == 0 {
+	//	return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+	//}
+	//
+	//notMnt, err := checkMount(targetPath)
+	//if err != nil {
+	//	return nil, status.Error(codes.Internal, err.Error())
+	//}
+	//if !notMnt {
+	//	return &csi.NodePublishVolumeResponse{}, nil
+	//}
+	//
+	//deviceID := ""
+	//if req.GetPublishContext() != nil {
+	//	deviceID = req.GetPublishContext()[deviceID]
+	//}
+	//
+	//// TODO: Implement readOnly & mountFlags
+	//readOnly := req.GetReadonly()
+	//// TODO: Check if attrib is correct with context.
+	//attrib := req.GetVolumeContext()
+	//mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
+	//
+	//glog.V(4).Infof("target %v\ndevice %v\nreadonly %v\nvolumeID %v\nattributes %v\nmountflags %v\n", targetPath, deviceID, readOnly, volumeID, attrib, mountFlags)
+	//
+	//s3, err := s3.NewClientFromSecret(req.GetSecrets())
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
+	//}
+	//meta, err := s3.GetFSMeta(bucketName, prefix)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//mounter, err := mounter.New(meta, s3.Config)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if err := mounter.Mount(stagingTargetPath, targetPath); err != nil {
+	//	return nil, err
+	//}
+	//
+	//glog.V(4).Infof("S3: volume %s successfully mounted to %s", volumeID, targetPath)
+	//
+	//return &csi.NodePublishVolumeResponse{}, nil
 
-	//Check arguments
-	if req.GetVolumeCapability() == nil {
-		return nil, status.Error(codes.InvalidArgument, "Volume capability missing in request")
-	}
-	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
-	}
-	if len(stagingTargetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Staging Target path missing in request")
-	}
-	if len(targetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
-	}
-
-	notMnt, err := checkMount(targetPath)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	if !notMnt {
-		return &csi.NodePublishVolumeResponse{}, nil
-	}
-
-	deviceID := ""
-	if req.GetPublishContext() != nil {
-		deviceID = req.GetPublishContext()[deviceID]
-	}
-
-	// TODO: Implement readOnly & mountFlags
-	readOnly := req.GetReadonly()
-	// TODO: Check if attrib is correct with context.
-	attrib := req.GetVolumeContext()
-	mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
-
-	glog.V(4).Infof("target %v\ndevice %v\nreadonly %v\nvolumeID %v\nattributes %v\nmountflags %v\n", targetPath, deviceID, readOnly, volumeID, attrib, mountFlags)
-
-	s3, err := s3.NewClientFromSecret(req.GetSecrets())
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
-	}
-	meta, err := s3.GetFSMeta(bucketName, prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	mounter, err := mounter.New(meta, s3.Config)
-	if err != nil {
-		return nil, err
-	}
-	if err := mounter.Mount(stagingTargetPath, targetPath); err != nil {
-		return nil, err
-	}
-
-	glog.V(4).Infof("S3: volume %s successfully mounted to %s", volumeID, targetPath)
-
-	return &csi.NodePublishVolumeResponse{}, nil
+	return nil, nil
 
 }
 
@@ -102,47 +102,49 @@ func (ns nodeServer) NodeUnpublishVolume(ctx context.Context, req *csi.NodeUnpub
 }
 
 func (ns *nodeServer) NodeStageVolume(ctx context.Context, req *csi.NodeStageVolumeRequest) (*csi.NodeStageVolumeResponse, error) {
-	volumeID := req.GetVolumeId()
-	stagingTargetPath := req.GetStagingTargetPath()
-	bucketName, prefix := volumeIDToBucketPrefix(volumeID)
+	//volumeID := req.GetVolumeId()
+	//stagingTargetPath := req.GetStagingTargetPath()
+	//bucketName, prefix := volumeIDToBucketPrefix(volumeID)
+	//
+	//// Check arguments
+	//if len(volumeID) == 0 {
+	//	return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
+	//}
+	//
+	//if len(stagingTargetPath) == 0 {
+	//	return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
+	//}
+	//
+	//if req.VolumeCapability == nil {
+	//	return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume Capability must be provided")
+	//}
+	//
+	//notMnt, err := checkMount(stagingTargetPath)
+	//if err != nil {
+	//	return nil, status.Error(codes.Internal, err.Error())
+	//}
+	//if !notMnt {
+	//	return &csi.NodeStageVolumeResponse{}, nil
+	//}
+	//client, err := s3.NewClientFromSecret(req.GetSecrets())
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
+	//}
+	//meta, err := client.GetFSMeta(bucketName, prefix)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//mounter, err := mounter.New(meta, client.Config)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//if err := mounter.Stage(stagingTargetPath); err != nil {
+	//	return nil, err
+	//}
+	//
+	//return &csi.NodeStageVolumeResponse{}, nil
 
-	// Check arguments
-	if len(volumeID) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
-	}
-
-	if len(stagingTargetPath) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "Target path missing in request")
-	}
-
-	if req.VolumeCapability == nil {
-		return nil, status.Error(codes.InvalidArgument, "NodeStageVolume Volume Capability must be provided")
-	}
-
-	notMnt, err := checkMount(stagingTargetPath)
-	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
-	}
-	if !notMnt {
-		return &csi.NodeStageVolumeResponse{}, nil
-	}
-	client, err := s3.NewClientFromSecret(req.GetSecrets())
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize S3 client: %s", err)
-	}
-	meta, err := client.GetFSMeta(bucketName, prefix)
-	if err != nil {
-		return nil, err
-	}
-	mounter, err := mounter.New(meta, client.Config)
-	if err != nil {
-		return nil, err
-	}
-	if err := mounter.Stage(stagingTargetPath); err != nil {
-		return nil, err
-	}
-
-	return &csi.NodeStageVolumeResponse{}, nil
+	return nil, nil
 
 }
 

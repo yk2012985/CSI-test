@@ -1,17 +1,13 @@
 package s3
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/minio/minio-go/v7"
-	"io"
-	"path"
+	"github.com/golang/glog"
+	"strings"
 )
 
 const (
@@ -94,8 +90,8 @@ func NewClientFromSecret(secret map[string]string) (*s3Client, error) {
 func (client *s3Client) BucketExists(bucketName string) (bool, error) {
 	result, err := client.parastorSvc.ListBuckets(nil)
 	if err != nil {
-		fmt.Printf("%v\n", err)
-		panic("Unable to list buckets")
+		glog.V(4).Infof("Can't list buckets: %v\n", err)
+		return false, err
 	}
 	if len(result.Buckets) == 0 {
 		return false, nil
@@ -119,56 +115,93 @@ func (client *s3Client) CreateBucket(bucketName string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Waiting for bucket %q to be created...\n", bucketName)
+	glog.V(3).Infof("Waiting for bucket %q to be created...\n", bucketName)
 	err = client.parastorSvc.WaitUntilBucketExists(&s3.HeadBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Bucket %q successfully created\n", bucketName)
+	glog.V(3).Infof("Bucket %q successfully created\n", bucketName)
 	return nil
 	//return client.minio.MakeBucket(client.ctx, bucketName, minio.MakeBucketOptions{Region: client.Config.Region})
 }
 
 // CreatePrefix What does this func do?
 func (client *s3Client) CreatePrefix(bucketName string, prefix string) error {
-	_, err := client.minio.PutObject(client.ctx, bucketName, prefix+"/", bytes.NewReader([]byte("")), 0, minio.PutObjectOptions{})
+	err := client.PutObjectToBucket(bucketName, prefix+"/")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (client *s3Client) SetFSMeta(meta *FSMeta) error {
-	b := new(bytes.Buffer)
-	json.NewEncoder(b).Encode(meta)
-	opts := minio.PutObjectOptions{ContentType: "application/json"}
-	_, err := client.minio.PutObject(
-		client.ctx, meta.BucketName, path.Join(meta.Prefix, metadataName), b, int64(b.Len()), opts)
-	return err
-
-}
+//func (client *s3Client) SetFSMeta(meta *FSMeta) error {
+//	b := new(bytes.Buffer)
+//	json.NewEncoder(b).Encode(meta)
+//	contentType := "application/json"
+//	object, err2 := client.parastorSvc.PutObject(&s3.PutObjectInput{
+//		ContentType: &contentType,
+//	})
+//	opts := minio.PutObjectOptions{ContentType: "application/json"}
+//	_, err := client.minio.PutObject(
+//		client.ctx, meta.BucketName, path.Join(meta.Prefix, metadataName), b, int64(b.Len()), opts)
+//	return err
+//
+//}
 
 // GetFSMeta get metadata of bucket
-func (client *s3Client) GetFSMeta(bucketName, prefix string) (*FSMeta, error) {
-	// what does this mean?
-	opts := minio.GetObjectOptions{}
-	obj, err := client.minio.GetObject(client.ctx, bucketName, path.Join(prefix, metadataName), opts)
-	if err != nil {
-		return &FSMeta{}, err
-	}
-	objInfo, err := obj.Stat()
-	if err != nil {
-		return &FSMeta{}, err
-	}
-	b := make([]byte, objInfo.Size)
-	_, err = obj.Read(b)
+//func (client *s3Client) GetFSMeta(bucketName, prefix string) (*FSMeta, error) {
+//	// what does this mean?
+//	opts := minio.GetObjectOptions{}
+//	obj, err := client.minio.GetObject(client.ctx, bucketName, path.Join(prefix, metadataName), opts)
+//	if err != nil {
+//		return &FSMeta{}, err
+//	}
+//	objInfo, err := obj.Stat()
+//	if err != nil {
+//		return &FSMeta{}, err
+//	}
+//	b := make([]byte, objInfo.Size)
+//	_, err = obj.Read(b)
+//
+//	if err != nil && err != io.EOF {
+//		return &FSMeta{}, err
+//	}
+//	var meta FSMeta
+//	err = json.Unmarshal(b, &meta)
+//	return &meta, err
+//}
 
-	if err != nil && err != io.EOF {
-		return &FSMeta{}, err
+func (client *s3Client) PutObjectToBucket(bucketName, keyName string) error {
+	_, err := client.parastorSvc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(keyName),
+		Body:   strings.NewReader("Expected contents"),
+	})
+	if err != nil {
+		glog.V(4).Infof("There is an error occurred: %v\n.", err)
+		return err
 	}
-	var meta FSMeta
-	err = json.Unmarshal(b, &meta)
-	return &meta, err
+	err = client.parastorSvc.WaitUntilObjectExists(&s3.HeadObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(keyName),
+	})
+	if err != nil {
+		glog.V(4).Infof("Can't verify the object exists: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+func (client *s3Client) GetObject(bucketName, keyName string, svc *s3.S3) (interface{}, error) {
+	gotObject, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(keyName),
+	})
+	if err != nil {
+		glog.V(3).Infof("Getting object wrong: %v\n", err)
+		return nil, err
+	}
+	return gotObject, nil
 }
