@@ -3,6 +3,7 @@ package s3
 import (
 	"context"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -88,20 +89,23 @@ func NewClientFromSecret(secret map[string]string) (*s3Client, error) {
 }
 
 func (client *s3Client) BucketExists(bucketName string) (bool, error) {
-	result, err := client.parastorSvc.ListBuckets(nil)
+	_, err := client.parastorSvc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String("testBucketExistKey"),
+	})
 	if err != nil {
-		glog.V(4).Infof("Can't list buckets: %v\n", err)
-		return false, err
-	}
-	if len(result.Buckets) == 0 {
-		return false, nil
-	}
-	for _, bucket := range result.Buckets {
-		if *bucket.Name == bucketName {
-			return true, nil
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case s3.ErrCodeNoSuchBucket:
+				return false, nil
+			case s3.ErrCodeNoSuchKey:
+				return true, nil
+			}
 		}
+		return false, err
+
 	}
-	return false, nil
+	return true, nil
 
 	//return client.minio.BucketExists(client.ctx, bucketName)
 }
