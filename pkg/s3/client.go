@@ -112,7 +112,7 @@ func (client *s3Client) BucketExists(bucketName string) (bool, error) {
 
 func (client *s3Client) CreateBucket(bucketName string) error {
 	prarms := &s3.CreateBucketInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(bucketName + "/"),
 	}
 
 	_, err := client.parastorSvc.CreateBucket(prarms)
@@ -179,7 +179,7 @@ func (client *s3Client) CreatePrefix(bucketName string, prefix string) error {
 
 func (client *s3Client) PutObjectToBucket(bucketName, keyName string) error {
 	_, err := client.parastorSvc.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(bucketName + "/"),
 		Key:    aws.String(keyName),
 		Body:   strings.NewReader("Expected contents"),
 	})
@@ -200,7 +200,7 @@ func (client *s3Client) PutObjectToBucket(bucketName, keyName string) error {
 
 func (client *s3Client) GetObject(bucketName, keyName string, svc *s3.S3) (interface{}, error) {
 	gotObject, err := svc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(bucketName + "/"),
 		Key:    aws.String(keyName),
 	})
 	if err != nil {
