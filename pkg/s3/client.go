@@ -90,7 +90,7 @@ func NewClientFromSecret(secret map[string]string) (*s3Client, error) {
 
 func (client *s3Client) BucketExists(bucketName string) (bool, error) {
 	_, err := client.parastorSvc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(bucketName + "/"),
 		Key:    aws.String("testBucketExistKey"),
 	})
 	if err != nil {
