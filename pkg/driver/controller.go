@@ -92,7 +92,7 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		// what does this mean?
 		// if bucket exists, get metadata of the bucket, ignore errors as it could just mean meta does not exist yet
 		m, err := client.GetFSMeta(bucketName, prefix)
-		if err != nil {
+		if err == nil {
 			// Check if volume capacity requested is bigger than the already existing capacity
 			if capacityBytes > m.CapacityBytes {
 				return nil, status.Error(
