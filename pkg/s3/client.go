@@ -124,7 +124,7 @@ func (client *s3Client) CreateBucket(bucketName string) error {
 	}
 	glog.V(3).Infof("Waiting for bucket %q to be created...\n", bucketName)
 	err = client.parastorSvc.WaitUntilBucketExists(&s3.HeadBucketInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(bucketName + "/"),
 	})
 	if err != nil {
 		return err
@@ -194,7 +194,7 @@ func (client *s3Client) PutObjectToBucket(bucketName, keyName string) error {
 		return err
 	}
 	err = client.parastorSvc.WaitUntilObjectExists(&s3.HeadObjectInput{
-		Bucket: aws.String(bucketName),
+		Bucket: aws.String(bucketName + "/"),
 		Key:    aws.String(keyName),
 	})
 	if err != nil {
