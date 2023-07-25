@@ -1,13 +1,16 @@
 package s3
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/glog"
+	"path"
 	"strings"
 )
 
@@ -133,49 +136,52 @@ func (client *s3Client) CreateBucket(bucketName string) error {
 
 // CreatePrefix What does this func do?
 func (client *s3Client) CreatePrefix(bucketName string, prefix string) error {
-	err := client.PutObjectToBucket(bucketName, prefix+"/")
+	_, err := client.parastorSvc.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(bucketName + "/"),
+		Key:    aws.String(prefix + "/"),
+		Body:   bytes.NewReader([]byte("")),
+	})
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-//func (client *s3Client) SetFSMeta(meta *FSMeta) error {
-//	b := new(bytes.Buffer)
-//	json.NewEncoder(b).Encode(meta)
-//	contentType := "application/json"
-//	object, err2 := client.parastorSvc.PutObject(&s3.PutObjectInput{
-//		ContentType: &contentType,
-//	})
-//	opts := minio.PutObjectOptions{ContentType: "application/json"}
-//	_, err := client.minio.PutObject(
-//		client.ctx, meta.BucketName, path.Join(meta.Prefix, metadataName), b, int64(b.Len()), opts)
-//	return err
-//
-//}
+func (client *s3Client) SetFSMeta(meta *FSMeta) error {
+	content, err := json.Marshal(meta)
+	if err != nil {
+		glog.V(4).Infof("Json marshal failed: %v\n", err)
+		return err
+	}
+	_, err = client.parastorSvc.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(meta.BucketName + "/"),
+		Key:         aws.String(path.Join(meta.Prefix, metadataName)),
+		ContentType: aws.String("application/json"),
+		Body:        strings.NewReader(string(content)),
+	})
+	return err
+
+}
 
 // GetFSMeta get metadata of bucket
-//func (client *s3Client) GetFSMeta(bucketName, prefix string) (*FSMeta, error) {
-//	// what does this mean?
-//	opts := minio.GetObjectOptions{}
-//	obj, err := client.minio.GetObject(client.ctx, bucketName, path.Join(prefix, metadataName), opts)
-//	if err != nil {
-//		return &FSMeta{}, err
-//	}
-//	objInfo, err := obj.Stat()
-//	if err != nil {
-//		return &FSMeta{}, err
-//	}
-//	b := make([]byte, objInfo.Size)
-//	_, err = obj.Read(b)
-//
-//	if err != nil && err != io.EOF {
-//		return &FSMeta{}, err
-//	}
-//	var meta FSMeta
-//	err = json.Unmarshal(b, &meta)
-//	return &meta, err
-//}
+func (client *s3Client) GetFSMeta(bucketName, prefix string) (*FSMeta, error) {
+	resp, err := client.parastorSvc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucketName + "/"),
+		Key:    aws.String(path.Join(prefix, metadataName)),
+	})
+	if err != nil {
+		return &FSMeta{}, err
+	}
+	defer resp.Body.Close()
+
+	decoder := json.NewDecoder(resp.Body)
+	result := FSMeta{}
+	if err := decoder.Decode(&result); err != nil {
+		return &FSMeta{}, err
+	}
+	return &result, nil
+
+}
 
 func (client *s3Client) PutObjectToBucket(bucketName, keyName string) error {
 	_, err := client.parastorSvc.PutObject(&s3.PutObjectInput{
