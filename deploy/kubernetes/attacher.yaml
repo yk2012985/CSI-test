@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: csi-Parastor-attacher-sa
+  name: csi-parastor-attacher-sa
   namespace: kube-system
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: external-Parastor-attacher-runner
+  name: external-parastor-attacher-runner
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -31,27 +31,27 @@ rules:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-Parastor-attacher-role
+  name: csi-parastor-attacher-role
 subjects:
   - kind: ServiceAccount
-    name: csi-Parastor-attacher-sa
+    name: csi-parastor-attacher-sa
     namespace: kube-system
 roleRef:
   kind: ClusterRole
-  name: external-Parastor-attacher-runner
+  name: external-parastor-attacher-runner
   apiGroup: rbac.authorization.k8s.io
 ---
 # needed for StatefulSet
 kind: Service
 apiVersion: v1
 metadata:
-  name: csi-Parastor-attacher-s3
+  name: csi-parastor-attacher-s3
   namespace: kube-system
   labels:
-    app: csi-Parastor-attacher-s3
+    app: csi-parastor-attacher-s3
 spec:
   selector:
-    app: csi-Parastor-attacher-s3
+    app: csi-parastor-attacher-s3
   ports:
     - name: csi-s3-dummy
       port: 65535
@@ -59,38 +59,38 @@ spec:
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: csi-Parastor-attacher-s3
+  name: csi-parastor-attacher-s3
   namespace: kube-system
 spec:
-  serviceName: "csi-Parastor-attacher-s3"
+  serviceName: "csi-parastor-attacher-s3"
   replicas: 1
   selector:
     matchLabels:
-      app: csi-Parastor-attacher-s3
+      app: csi-parastor-attacher-s3
   template:
     metadata:
       labels:
-        app: csi-Parastor-attacher-s3
+        app: csi-parastor-attacher-s3
     spec:
       serviceAccount: csi-attacher-sa
       tolerations:
       - key: node-role.kubernetes.io/master
         operator: "Exists"
       containers:
-        - name: csi-Parastor-attacher
+        - name: csi-parastor-attacher
           image: quay.io/k8scsi/csi-attacher:3.1-canary
           args:
             - "--v=4"
             - "--csi-address=$(ADDRESS)"
           env:
             - name: ADDRESS
-              value: /var/lib/kubelet/plugins/ictnj.csi.s3-Parastor-driver/csi.sock
+              value: /var/lib/kubelet/plugins/ictnj.csi.s3-parastor-driver/csi.sock
           imagePullPolicy: "IfNotPresent"
           volumeMounts:
             - name: socket-dir
-              mountPath: /var/lib/kubelet/plugins/ictnj.csi.s3-Parastor-driver
+              mountPath: /var/lib/kubelet/plugins/ictnj.csi.s3-parastor-driver
       volumes:
         - name: socket-dir
           hostPath:
-            path: /var/lib/kubelet/plugins/ictnj.csi.s3-Parastor-driver
+            path: /var/lib/kubelet/plugins/ictnj.csi.s3-parastor-driver
             type: DirectoryOrCreate
