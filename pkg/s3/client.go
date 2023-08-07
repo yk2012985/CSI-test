@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/golang/glog"
@@ -40,6 +41,20 @@ type FSMeta struct {
 	Mounter       string `json:"Mounter"`
 	FSPath        string `json:"FSPath"`
 	CapacityBytes int64  `json:"CapacityBytes"`
+}
+
+type SetBucketQuotaInput struct {
+	Bucket *string `location:"uri" locationName:"Bucket" type:"string" required:"true"`
+	Quota  *Quota
+}
+
+type Quota struct {
+	StorageQuota int64 `type:"int"`
+	ObjectQuota  int64 `type:"int"`
+}
+
+type SetBucketQuotaOutput struct {
+	_ struct{} `type:"structure"`
 }
 
 func NewClient(cfg *Config) (*s3Client, error) {
@@ -131,7 +146,44 @@ func (client *s3Client) CreateBucket(bucketName string) error {
 	}
 	glog.V(3).Infof("Bucket %q successfully created\n", bucketName)
 	return nil
-	//return client.minio.MakeBucket(client.ctx, bucketName, minio.MakeBucketOptions{Region: client.Config.Region})
+}
+
+func (client *s3Client) SetBucketQuotaFn(bucketName string, storageQuota int64, objectsQuota int64) error {
+	req, _ := client.SetBucketQuotaRequest(&SetBucketQuotaInput{
+		Bucket: aws.String(bucketName),
+		Quota: &Quota{
+			StorageQuota: aws.Int64Value(&storageQuota),
+			ObjectQuota:  aws.Int64Value(&objectsQuota),
+		},
+	})
+	err := req.Send()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (client *s3Client) SetBucketQuotaRequest(input *SetBucketQuotaInput) (req *request.Request, output *SetBucketQuotaOutput) {
+	op := &request.Operation{
+		Name:       "SetBucketQuota",
+		HTTPMethod: "PUT",
+		HTTPPath:   "/{Bucket}?quota",
+	}
+
+	output = &SetBucketQuotaOutput{}
+	req = client.newRequest(op, input, output)
+	return
+}
+
+func (client *s3Client) newRequest(op *request.Operation, params, data interface{}) *request.Request {
+	return client.parastorSvc.NewRequest(op, params, data)
+
+	// Run custom request initialization if present
+	//if initRequest != nil {
+	//	initRequest(req)
+	//}
+
+	//return req
 }
 
 // CreatePrefix What does this func do?
@@ -159,6 +211,8 @@ func (client *s3Client) SetFSMeta(meta *FSMeta) error {
 		ContentType: aws.String("application/json"),
 		Body:        strings.NewReader(string(content)),
 	})
+
+	//client.parastorSvc.PutBucketPolicy(&s3.PutBucketPolicyInput{})
 	return err
 
 }

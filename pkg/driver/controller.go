@@ -106,6 +106,9 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 		if err = client.CreateBucket(bucketName); err != nil {
 			return nil, fmt.Errorf("failed to create bucket %s: %v", bucketName, err)
 		}
+		if err = client.SetBucketQuotaFn(bucketName, capacityBytes, 0); err != nil {
+			return nil, fmt.Errorf("failed to set quota of the bucket %s: %v", bucketName, err)
+		}
 	}
 
 	// Why should we createPrefix?
